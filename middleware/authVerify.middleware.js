@@ -1,11 +1,10 @@
-const Verifier = require('auth-verify');
-const dotenv = require('dotenv');
+import Verifier from 'auth-verify';
+import { EMAIL_USER, EMAIL_PASS } from '../config/env.js';
 
-dotenv.config();
 
-const verifier = new Verifier({
-  sender: process.env.EMAIL_USER,
-  pass: process.env.EMAIL_PASS,
+export const verifier = new Verifier({
+  sender: EMAIL_USER,
+  pass: EMAIL_PASS,
   serv: 'gmail',
   otp: { // otp is optional
     leng: 6,  // length of otp code
@@ -15,4 +14,4 @@ const verifier = new Verifier({
   }
 });
 
-module.exports = verifier;
+// export default verifier;

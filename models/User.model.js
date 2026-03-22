@@ -1,28 +1,32 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db.js');
+import { DataTypes } from 'sequelize';
+import sequelize from '../config/db.js';
 
 
-const User = sequelize.define('ediTable', {
+const User = sequelize.define('editable', {
   name: {
     type: DataTypes.STRING,
     allowNull: false,
+    trim: true,
   },  
   username: {
     type: DataTypes.STRING,
     allowNull: false,
+    trim: true,
   },  
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true
+    unique: true,
+    trim: true,
   },  
   password: {
     type: DataTypes.STRING,
     allowNull: false,
+    trim: true,
   },  
 }, {timestamps: true});
 
-module.exports = User;
+export default User;
 
 
 

@@ -1,11 +1,12 @@
-const User = require('../models/User.model.js');
-const bcryptSalt = require('bcryptjs');
-const { verifier } = require('../middleware/authVerify.middleware.js');
-const jwt = require('jsonwebtoken');
+import User from '../models/User.model.js';
+import bcryptSalt from 'bcryptjs';
+import { verifier } from '../middleware/authVerify.middleware.js';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET_KEY, JWT_EXPIRES_IN } from '../config/env.js';
 
 
 
-const signup = (req, res) => {
+export const signup = (req, res) => {
   try {
     res.render('register', { title: 'This is OTP register Page.'})
   } catch (error) {
@@ -14,7 +15,7 @@ const signup = (req, res) => {
 };
 
 
-const register = async (req, res) => {
+export const register = async (req, res) => {
   try {
      const { name, email, username, password } = req.body;
 
@@ -40,8 +41,11 @@ const register = async (req, res) => {
       email,
       password: hashedPassword
     });
+     
+    newUser.save();
+    
+    res.redirect('verified');
 
-    res.status(201).json({ message: 'User has been created successfully!', newUser});
     verifier
     .subject(`Verify your account: ${otp}`)
     .text(`Your verification code is ${otp}`)
@@ -50,14 +54,17 @@ const register = async (req, res) => {
       console.log('OTP sent to', email);
       res.redirect(`/verify?email=${encodeURIComponent(email)}`);
     });
+     
 
+    return res.status(201).json({ message: 'User has been created successfully!'});
+    
   } catch (error) {
       return res.status(400).json({ message: 'Error in loading the page: ', error});
   }
 };
 
 
-const verified = (req, res) => {
+export const verified = (req, res) => {
   try {
     res.render('verify', { email: 'This is OTP login Page.'})
   } catch (error) {
@@ -66,11 +73,13 @@ const verified = (req, res) => {
 };
 
 
-const verify = (req, res) => {
+export const verify = (req, res) => {
   try {
     const {otp} = req.body;
 
     console.log('OTP: ', otp);
+
+    return res.redirect('login');
     
   } catch (error) {
       return res.status(400).json({ message: 'Error in loading the page: ', error});
@@ -78,7 +87,7 @@ const verify = (req, res) => {
 };
 
 
-const login = (req, res) => {
+export const login = (req, res) => {
   try {
     res.render('login', { title: 'This is OTP login Page.'})
   } catch (error) {
@@ -87,7 +96,65 @@ const login = (req, res) => {
 };
 
 
-const signIn = (req, res) => {
+export const signIn = async (req, res) => {
+  
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ where: { email } });
+    console.log(req.body);
+    // Checking data from form (user end).
+    if (!email || !password) {
+      return res.status(400).json({ error: 'All fields are required!'});
+    }
+    console.log('Email: ', email);
+    console.log('Password: ', password);
+    // Checking if there is no user.
+    if (!user) return res.status(400).json({ error: 'User email address or password is incorrect.'});
+
+    const isPasswordMatch = await bcryptSalt.compare(password, user.password);
+
+    if(!isPasswordMatch) {
+      return res.status(400).json({ error: 'Invalid credentials!'});
+    }
+
+    const accessToken = jwt.sign({userId: user.id}, JWT_SECRET_KEY, { expiresIn: JWT_EXPIRES_IN });
+    
+    res.status(200).json({
+      success: true,
+      message: 'User has been successfully signed in.',
+      data: {
+        accessToken,
+        user
+      }
+    });
+
+    return res.redirect('home');
+
+  } catch (error) {
+      return res.status(400).json({ message: `Error in loading the page: ${error}` });
+  }
+};
+
+export const userInfo = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found!'});
+    }
+
+    return user;  // res.json({ user });
+
+  } catch (error) {
+    return res.status(400).json({ message: `Error in fetching user info: ${error}`})
+  }
+};
+
+export const home = async (req, res) => {
+  res.render('home');
+}
+
+export const signOut = (req, res) => {
   try {
     
   } catch (error) {
@@ -96,13 +163,3 @@ const signIn = (req, res) => {
 };
 
 
-const signOut = (req, res) => {
-  try {
-    
-  } catch (error) {
-      return res.status(400).json({ message: 'Error in loading the page: ', error});
-  }
-};
-
-
-module.exports = { signup, register, verified, verify, login, signIn, signOut };
